@@ -77,7 +77,7 @@ export class ProductListComponent implements OnInit, OnDestroy {
         });
   
       // Fetch categories and process products
-      this.categoryService.getAlotOfCategories()
+      this.categoryService.getCategories()
         .pipe(
           switchMap(categoryTree => this.extractProducts(categoryTree)),
           tap(products => {
