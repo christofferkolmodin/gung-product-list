@@ -4,6 +4,9 @@ addEventListener('message', ({ data }) => {
   const { products, ...filterParams } = data;
 
   const filteredProducts = applyFilters(products, filterParams);
-  
-  postMessage(filteredProducts);
+
+  postMessage({
+    filteredProducts,
+    filteredCount: filteredProducts.length
+  });
 });

@@ -1,6 +1,13 @@
 # Gung AB Product List
 
-An intuitive Angular web application that allows users to easily browse, filter, and sort products. Built for optimal performance and a seamless user experience.
+Angular web application that allows users to browse, filter, and sort products.
+
+According to assignment specifications:
+
+getCategories() is called from line 80, in the method ngOnInit(), if wanting to change to getAlotOfCategories() instead
+
+getProduct(id) is called from line 125, in the method extractProducts(category),
+   if wanting to change to getRandomProduct(id) together with getCategories()
 
 ---
 
@@ -23,10 +30,7 @@ An intuitive Angular web application that allows users to easily browse, filter,
   - Category
 
 ### ⚡ **Performance Optimization:**
-- Leverages **Web Workers** and **RxJS** (`combineLatest()`) for efficient data handling and smooth interactions.
-
-### 🎨 **Responsive UI:**
-- Fully responsive design ensuring usability across different devices.
+- Leverages **Web Workers** and **RxJS** for efficient data handling and smooth interactions.
 
 ---
 

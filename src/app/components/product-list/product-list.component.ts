@@ -7,7 +7,7 @@ import { ChangeDetectionStrategy } from '@angular/core';
 import { ScrollingModule } from '@angular/cdk/scrolling';
 import { ChangeDetectorRef } from '@angular/core';
 import { applyFilters } from '../../utils/filter-utils';
-import { firstValueFrom } from 'rxjs';
+import { Subject, switchMap, tap, firstValueFrom, fromEvent, BehaviorSubject, ReplaySubject, takeUntil } from 'rxjs';
 
 enum SortDirection {
   ASC = 'asc',
@@ -25,13 +25,16 @@ enum SortDirection {
 
 export class ProductListComponent implements OnInit, OnDestroy {
 
+  private destroy$ = new Subject<void>();
+  public currentPage$ = new BehaviorSubject<number>(1);
+  private productIndex$ = new ReplaySubject<Map<string, any[]>>(1);
+  filteredCount$ = new BehaviorSubject<number>(0);
+
   totalPages: number = 0;
-  currentPage: number = 1;
   
   worker!: Worker;
   products: any[] = [];
   filteredProducts: any[] = [];
-  loading = true;
   priceRange: number[] = [0, 0];
   uniqueCategories: any[] = [];
   selectedCategories: string[] = []; // Categories to show when clicking "Apply" in the Filter sidebar
@@ -46,11 +49,8 @@ export class ProductListComponent implements OnInit, OnDestroy {
   volumeFrom = new FormControl('');
   volumeTo = new FormControl('');
 
-  showClearButton = false; // Controls the visibility of the clear button in the Filter sidebar
-
   sortColumn: string = '';
   sortDirection: SortDirection = SortDirection.ASC;
-  productIndex: Map<string, any[]> = new Map(); // Search Optimization
   categoriesLoaded = false; // Keeps track if category filter dropdown has been pressed or not
   
   pageSize = 50;  // Number of products per page
@@ -65,35 +65,43 @@ export class ProductListComponent implements OnInit, OnDestroy {
     if (typeof Worker !== 'undefined') {
       this.worker = new Worker(new URL('./product.worker', import.meta.url), { type: 'module' });
   
-      this.worker.onmessage = ({ data }) => {
-        this.filteredProducts = data;
-  
-        // Recalculate pagination here after receiving filtered results
-        this.totalPages = Math.max(1, Math.ceil(this.filteredProducts.length / this.pageSize));
-        this.currentPage = Math.min(this.currentPage, this.totalPages);
-  
-        this.cdr.detectChanges();
-      };
-  
-      this.categoryService.getAlotOfCategories().subscribe(async categoryTree => {
-        if (categoryTree) {
-          this.products = await this.extractProducts(categoryTree);
-          this.filteredProducts = [...this.products];
-          this.calculatePriceRange();
-          this.extractUniqueCategories();
-          this.loading = false;
-          this.filterProducts(); // initial filter
+      // Wrap worker messages in an Observable
+      fromEvent<MessageEvent>(this.worker, 'message')
+        .pipe(takeUntil(this.destroy$))
+        .subscribe(({ data }) => {
+          this.filteredProducts = data.filteredProducts;
+          this.filteredCount$.next(data.filteredCount); // ← Update the count reactively
+          this.totalPages = Math.max(1, Math.ceil(this.filteredProducts.length / this.pageSize));
+          this.currentPage$.next(Math.min(this.currentPage$.value, this.totalPages));
           this.cdr.detectChanges();
-        }
-      });
+        });
+  
+      // Fetch categories and process products
+      this.categoryService.getAlotOfCategories()
+        .pipe(
+          switchMap(categoryTree => this.extractProducts(categoryTree)),
+          tap(products => {
+            this.products = products;
+            this.filteredProducts = [...products];
+            this.calculatePriceRange();
+            this.extractUniqueCategories();
+            this.filterProducts(); // Initial filter after data load
+            this.cdr.detectChanges();
+          }),
+          takeUntil(this.destroy$) // Automatically clean up subscriptions
+        )
+        .subscribe();
     } else {
       console.warn('Web Workers not supported');
     }
   }
   
   ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+    
     if (this.worker) {
-      this.worker.terminate(); // Frees memory
+      this.worker.terminate();
     }
   }
 
@@ -125,6 +133,15 @@ export class ProductListComponent implements OnInit, OnDestroy {
       }
     }
   
+    // Cache the indexed data reactively
+    const index = new Map<string, any[]>();
+    products.forEach(p => {
+      const key = p.name.toLowerCase();
+      if (!index.has(key)) index.set(key, []);
+      index.get(key)!.push(p);
+    });
+  
+    this.productIndex$.next(index);
     return products;
   }
 
@@ -195,7 +212,7 @@ export class ProductListComponent implements OnInit, OnDestroy {
     this.priceMax.setValue(this.priceMax.value || '');
     this.volumeFrom.setValue(this.volumeFrom.value || '');
     this.volumeTo.setValue(this.volumeTo.value || '');
-  
+
     this.filterProducts(); // Apply filtering only when "Apply" is clicked
   }
 
@@ -207,6 +224,8 @@ export class ProductListComponent implements OnInit, OnDestroy {
     this.priceMax.setValue('');
     this.volumeFrom.setValue('');
     this.volumeTo.setValue('');
+
+    this.updateFilteredCount();
   }
 
   filtersApplied(): boolean {
@@ -242,10 +261,11 @@ export class ProductListComponent implements OnInit, OnDestroy {
       this.worker.postMessage({ products: this.products, ...filterParams });
     } else {
       console.warn('Web Workers not supported, running manual filtering');
+
       this.filteredProducts = applyFilters(this.products, filterParams);
-  
+
       this.totalPages = Math.max(1, Math.ceil(this.filteredProducts.length / this.pageSize));
-      this.currentPage = Math.min(this.currentPage, this.totalPages);
+      this.currentPage$.next(Math.min(this.currentPage$.value, this.totalPages));
       this.cdr.detectChanges();
     }
   }
@@ -285,7 +305,7 @@ export class ProductListComponent implements OnInit, OnDestroy {
     this.cdr.detectChanges(); // Ensure UI updates
   }
 
-  trackById(index: number, product: any) {
+  trackById(index: number, product: any): string {
     return product.id;
   }
 
@@ -297,29 +317,19 @@ export class ProductListComponent implements OnInit, OnDestroy {
     return this.products.filter(product => parseFloat(product.extra.LGA) > 0).length;
   }
 
-  getFilteredCount(): number {
-    return this.products.filter(product => {
-
-      const matchesSearch = (this.searchFilter.value ?? '').trim() === '' ||
-        product.name.toLowerCase().includes((this.searchFilter.value ?? '').toLowerCase()) ||
-        product.id.toLowerCase().includes((this.searchFilter.value ?? '').toLowerCase()) ||
-        product.category.toLowerCase().includes((this.searchFilter.value ?? '').toLowerCase());
+  updateFilteredCount() {
+    const filterParams = {
+      query: this.searchFilter.value?.toLowerCase() || '',
+      priceMin: this.priceMin.value ? parseFloat(this.priceMin.value) : 0,
+      priceMax: this.priceMax.value ? parseFloat(this.priceMax.value) : Infinity,
+      volumeFrom: this.volumeFrom.value ? parseFloat(this.volumeFrom.value) : 0,
+      volumeTo: this.volumeTo.value ? parseFloat(this.volumeTo.value) : Infinity,
+      stockFilter: this.tempStockFilter.value,
+      selectedCategories: this.tempSelectedCategories
+    };
   
-      const matchesPrice = 
-        ((this.priceMin.value ?? '') === '' || product.extra.PRI >= +(this.priceMin.value ?? '0')) &&
-        ((this.priceMax.value ?? '') === '' || product.extra.PRI <= +(this.priceMax.value ?? '0'));
-  
-      const matchesStock = !this.tempStockFilter.value || parseFloat(product.extra.LGA) > 0;
-  
-      const matchesVolume =
-        ((this.volumeFrom.value ?? '') === '' || product.extra.VOL >= +(this.volumeFrom.value ?? '0')) &&
-        ((this.volumeTo.value ?? '') === '' || product.extra.VOL <= +(this.volumeTo.value ?? '0'));
-  
-      const matchesCategory = this.tempSelectedCategories.length === 0 ||
-        this.tempSelectedCategories.includes(product.category);
-  
-      return matchesSearch && matchesPrice && matchesStock && matchesVolume && matchesCategory;
-    }).length;
+    const filteredPreviewProducts = applyFilters(this.products, filterParams);
+    this.filteredCount$.next(filteredPreviewProducts.length); // Updates filtered count for Apply Filter button
   }
 
   loadCategoriesIfNeeded() {
@@ -333,37 +343,29 @@ export class ProductListComponent implements OnInit, OnDestroy {
     if (!this.filteredProducts || this.filteredProducts.length === 0) {
       return []; // Return empty array so *ngIf triggers the "No Results" message
     }
-    const start = (this.currentPage - 1) * this.pageSize;
+    const start = (this.currentPage$.value - 1) * this.pageSize;
     const end = start + this.pageSize;
     return this.filteredProducts.slice(start, end);
   }
 
   // Navigate to First Page
   goToFirstPage() {
-    if (this.currentPage > 1) {
-      this.currentPage = 1;
-    }
+    this.currentPage$.next(1);
   }
 
-  // Navigate to Previous Page
+ // Navigate to Previous Page
   goToPreviousPage() {
-    if (this.currentPage > 1) {
-      this.currentPage--;
-    }
+    this.currentPage$.next(Math.max(1, this.currentPage$.value - 1));
   }
 
   // Navigate to Next Page
   goToNextPage() {
-    if (this.currentPage < this.totalPages) {
-      this.currentPage++;
-    }
+    this.currentPage$.next(Math.min(this.totalPages, this.currentPage$.value + 1));
   }
 
   // Navigate to Last Page
   goToLastPage() {
-    if (this.currentPage < this.totalPages) {
-      this.currentPage = this.totalPages;
-    }
+    this.currentPage$.next(this.totalPages);
   }
 
 }

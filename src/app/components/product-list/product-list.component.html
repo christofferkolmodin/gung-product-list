@@ -35,7 +35,7 @@
 
       <!-- "In Stock" Checkbox with Count -->
       <div class="checkbox-container">
-        <input type="checkbox" [formControl]="tempStockFilter">
+        <input type="checkbox" [formControl]="tempStockFilter" (change)="updateFilteredCount()">
         <label>In Stock ({{ inStockCount() }})</label>
       </div>
 
@@ -45,9 +45,9 @@
       </button>
       <div id="priceFilter" class="collapse filter-content">
         <label>Min Price (SEK):</label>
-        <input type="number" class="form-control mb-2" [formControl]="priceMin">
+        <input type="number" class="form-control mb-2" [formControl]="priceMin" (input)="updateFilteredCount()">
         <label>Max Price (SEK):</label>
-        <input type="number" class="form-control mb-3" [formControl]="priceMax">
+        <input type="number" class="form-control mb-3" [formControl]="priceMax" (input)="updateFilteredCount()">
       </div>
 
       <!-- Volume Dropdown -->
@@ -56,9 +56,9 @@
       </button>
       <div id="volumeFilter" class="collapse filter-content">
         <label>Min Volume:</label>
-        <input type="number" class="form-control mb-2" [formControl]="volumeFrom">
+        <input type="number" class="form-control mb-2" [formControl]="volumeFrom" (input)="updateFilteredCount()">
         <label>Max Volume:</label>
-        <input type="number" class="form-control mb-3" [formControl]="volumeTo">
+        <input type="number" class="form-control mb-3" [formControl]="volumeTo" (input)="updateFilteredCount()">
       </div>
 
       <!-- Categories Dropdown (only loads categories when dropdown is opened)-->
@@ -71,7 +71,7 @@
         <div *ngFor="let category of uniqueCategories; trackBy: trackByCategory">
           <label class="filter-checkbox">
             <input type="checkbox" (change)="toggleCategoryFilter(category.name)"
-              [checked]="tempSelectedCategories.includes(category.name)">
+              [checked]="tempSelectedCategories.includes(category.name)" (change)="updateFilteredCount()">
             {{ category.name }} ({{ category.count }})
           </label>
         </div>
@@ -82,11 +82,10 @@
     <div class="offcanvas-footer p-3">
       <!-- "Apply Filters" Button with Filtered Product Count -->
       <button class="apply-filters-btn w-100" (click)="applySidebarFilters()" data-bs-dismiss="offcanvas">
-        APPLY FILTERS ({{ getFilteredCount() }}) <i class="bi bi-arrow-right"></i>
+        APPLY FILTERS ({{ filteredCount$ | async }}) <i class="bi bi-arrow-right"></i>
       </button>
     </div>
   </div>
-
 
   <!-- Product table. Displays only if there is at least one result -->
   <table class="table table-bordered mt-3" *ngIf="paginatedProducts.length > 0; else noResults">
@@ -166,11 +165,11 @@
 
   <!-- Pagination at bottom of page -->
   <div class="pagination-container" *ngIf="paginatedProducts.length > 0">
-    <button (click)="goToFirstPage()" [disabled]="currentPage <= 1">« First</button>
-    <button (click)="goToPreviousPage()" [disabled]="currentPage <= 1">‹ Previous</button>
-    <span>Page {{currentPage}} of {{totalPages}}</span>
-    <button (click)="goToNextPage()" [disabled]="currentPage >= totalPages">Next ›</button>
-    <button (click)="goToLastPage()" [disabled]="currentPage >= totalPages">Last »</button>
+    <button (click)="goToFirstPage()" [disabled]="currentPage$.value <= 1">« First</button>
+    <button (click)="goToPreviousPage()" [disabled]="currentPage$.value <= 1">‹ Previous</button>
+    <span>Page {{ currentPage$.value }} of {{ totalPages }}</span>
+    <button (click)="goToNextPage()" [disabled]="currentPage$.value >= totalPages">Next ›</button>
+    <button (click)="goToLastPage()" [disabled]="currentPage$.value >= totalPages">Last »</button>
   </div>
 
 </div>

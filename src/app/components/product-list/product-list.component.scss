@@ -313,17 +313,17 @@ input[type="checkbox"]:hover {
 
 th {
     .header-cell {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-  
-      .sort-icon {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+
+        .sort-icon {
         font-size: 0.8em;
-        
-        // Font size for column header arrows
-        &:not(:has(> .active)) {
-          font-size: 0.82em;
+
+            // Font size for column header arrows
+            &:not(:has(> .active)) {
+                font-size: 0.83em;
+            }
         }
-      }
     }
-  }
+}
