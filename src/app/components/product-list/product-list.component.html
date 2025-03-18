@@ -8,7 +8,9 @@
         <i class="bi bi-search"></i>
       </button>
       <input type="text" class="search-input" placeholder="Search by Name, ID, or Category..." [formControl]="searchFilter" (keydown.enter)="filterProducts()">
-      <button *ngIf="searchFilter.value" class="search-clear-btn" (click)="searchFilter.setValue('')">&times;</button>
+      <button *ngIf="searchFilter.value" class="search-clear-btn" (click)="searchFilter.setValue('')">
+        <i class="bi bi-x-lg"></i>
+      </button>
     </div>
 
     <button class="filter-sidebar-btn" data-bs-toggle="offcanvas" data-bs-target="#filterSidebar">

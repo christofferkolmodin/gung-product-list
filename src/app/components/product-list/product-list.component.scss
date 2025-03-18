@@ -8,9 +8,9 @@
     border-radius: 50px; /* Rounded */
     transition: background-color 0.2s ease-in-out;
     padding: 0;
-    height: 50px; /* Ensure height consistency */
+    height: 46px; /* Ensure height consistency */
     overflow: hidden; /* Prevent gaps */
-    max-width: 400px; // Search bar width
+    max-width: 420px; // Search bar width
 }
 
 /* Circular Buttons (Fully Touch Edges) of search bar */
@@ -30,10 +30,9 @@
 }
 
 .search-clear-btn {
-    font-size: 1.8rem;
+    font-size: 1.3rem;
     font-weight: bold;
     color: #6c757d;
-    line-height: 1;
 }
 
 .search-icon {
@@ -58,7 +57,7 @@
 
 .search-icon:hover,
 .search-clear-btn:hover {
-    background-color: #d9dada !important;
+    background-color: #cbcbcb !important;
 }
 
 .filter-sidebar-btn {
