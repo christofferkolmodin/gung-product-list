@@ -1,0 +1,176 @@
+<div class="container mt-4">
+  <h2>Product List</h2>
+
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <!-- Search Bar -->
+    <div class="search-container">
+      <button class="search-icon" (click)="filterProducts()">
+        <i class="bi bi-search"></i>
+      </button>
+      <input type="text" class="search-input" placeholder="Search by Name, ID, or Category..." [formControl]="searchFilter" (keydown.enter)="filterProducts()">
+      <button *ngIf="searchFilter.value" class="search-clear-btn" (click)="searchFilter.setValue('')">&times;</button>
+    </div>
+
+    <button class="filter-sidebar-btn" data-bs-toggle="offcanvas" data-bs-target="#filterSidebar">
+      Filter <i class="bi bi-sliders"></i>
+    </button>
+  </div>
+
+  <!-- Filter sidebar -->
+  <div class="offcanvas offcanvas-end d-flex flex-column" tabindex="-1" id="filterSidebar">
+
+    <div class="offcanvas-header d-flex align-items-center justify-content-between w-100">
+      <h5 class="offcanvas-title flex-grow-1">Filter & Sort</h5>
+    
+      <!-- Only show "Clear Filters" when any of the filters are applied -->
+      <span *ngIf="filtersApplied()" class="clear-filters me-2" (click)="clearFilters()">
+        Clear Filters
+      </span>
+    
+      <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+    </div>
+
+    <!-- Scrollable Sidebar Content -->
+    <div class="offcanvas-body flex-grow-1">
+
+      <!-- "In Stock" Checkbox with Count -->
+      <div class="checkbox-container">
+        <input type="checkbox" [formControl]="tempStockFilter">
+        <label>In Stock ({{ inStockCount() }})</label>
+      </div>
+
+      <!-- Price Dropdown -->
+      <button class="filter-btn" type="button" data-bs-toggle="collapse" data-bs-target="#priceFilter">
+        Price ▼
+      </button>
+      <div id="priceFilter" class="collapse filter-content">
+        <label>Min Price (SEK):</label>
+        <input type="number" class="form-control mb-2" [formControl]="priceMin">
+        <label>Max Price (SEK):</label>
+        <input type="number" class="form-control mb-3" [formControl]="priceMax">
+      </div>
+
+      <!-- Volume Dropdown -->
+      <button class="filter-btn" type="button" data-bs-toggle="collapse" data-bs-target="#volumeFilter">
+        Volume ▼
+      </button>
+      <div id="volumeFilter" class="collapse filter-content">
+        <label>Min Volume:</label>
+        <input type="number" class="form-control mb-2" [formControl]="volumeFrom">
+        <label>Max Volume:</label>
+        <input type="number" class="form-control mb-3" [formControl]="volumeTo">
+      </div>
+
+      <!-- Categories Dropdown (only loads categories when dropdown is opened)-->
+      <button class="filter-btn" type="button" data-bs-toggle="collapse" data-bs-target="#categoryFilter"
+        (click)="loadCategoriesIfNeeded()">
+        Categories ▼
+      </button>
+
+      <div id="categoryFilter" class="collapse filter-content">
+        <div *ngFor="let category of uniqueCategories; trackBy: trackByCategory">
+          <label class="filter-checkbox">
+            <input type="checkbox" (change)="toggleCategoryFilter(category.name)"
+              [checked]="tempSelectedCategories.includes(category.name)">
+            {{ category.name }} ({{ category.count }})
+          </label>
+        </div>
+      </div>
+    </div>
+
+  
+    <div class="offcanvas-footer p-3">
+      <!-- "Apply Filters" Button with Filtered Product Count -->
+      <button class="apply-filters-btn w-100" (click)="applySidebarFilters()" data-bs-dismiss="offcanvas">
+        APPLY FILTERS ({{ getFilteredCount() }}) <i class="bi bi-arrow-right"></i>
+      </button>
+    </div>
+  </div>
+
+
+  <!-- Product table. Displays only if there is at least one result -->
+  <table class="table table-bordered mt-3" *ngIf="paginatedProducts.length > 0; else noResults">
+    <thead>
+      <tr>
+        <th (click)="sortBy('name')">
+          <div class="header-cell">
+            <span>Name</span>
+            <span class="sort-icon">
+              {{ sortColumn === 'name' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕' }}
+            </span>
+          </div>
+        </th>
+        <th (click)="sortBy('id')">
+          <div class="header-cell">
+            <span>ID</span>
+            <span class="sort-icon">
+              {{ sortColumn === 'id' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕' }}
+            </span>
+          </div>
+        </th>
+        <th (click)="sortBy('extra.PRI')">
+          <div class="header-cell">
+            <span>Price</span>
+            <span class="sort-icon">
+              {{ sortColumn === 'extra.PRI' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕' }}
+            </span>
+          </div>
+        </th>
+        <th (click)="sortBy('extra.LGA')">
+          <div class="header-cell">
+            <span>Stock</span>
+            <span class="sort-icon">
+              {{ sortColumn === 'extra.LGA' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕' }}
+            </span>
+          </div>
+        </th>
+        <th (click)="sortBy('extra.VOL')">
+          <div class="header-cell">
+            <span>Volume</span>
+            <span class="sort-icon">
+              {{ sortColumn === 'extra.VOL' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕' }}
+            </span>
+          </div>
+        </th>
+        <th (click)="sortBy('category')">
+          <div class="header-cell">
+            <span>Category</span>
+            <span class="sort-icon">
+              {{ sortColumn === 'category' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕' }}
+            </span>
+          </div>
+        </th>
+      </tr>
+    </thead>
+
+    <tbody>
+      <tr *ngFor="let product of paginatedProducts; trackBy: trackById">
+        <td>{{ product.name }}</td>
+        <td>{{ product.id }}</td>
+        <td>{{ product.extra.PRI | currency: 'SEK ' : 'symbol' : '1.0-0' }}</td>
+        <td [class.text-success]="product.extra.LGA > 0" [class.text-danger]="product.extra.LGA <= 0">
+          {{ product.extra.LGA > 0 ? 'Yes' : 'No' }}
+        </td>
+        <td>{{ product.extra.VOL }}</td>
+        <td>{{ product.category }}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- No Results Message -->
+  <ng-template #noResults>
+    <div class="alert alert-warning text-center mt-3" role="alert">
+      <i class="bi bi-exclamation-circle"></i> No products found. Try adjusting your search filters.
+    </div>
+  </ng-template>
+
+  <!-- Pagination at bottom of page -->
+  <div class="pagination-container" *ngIf="paginatedProducts.length > 0">
+    <button (click)="goToFirstPage()" [disabled]="currentPage <= 1">« First</button>
+    <button (click)="goToPreviousPage()" [disabled]="currentPage <= 1">‹ Previous</button>
+    <span>Page {{currentPage}} of {{totalPages}}</span>
+    <button (click)="goToNextPage()" [disabled]="currentPage >= totalPages">Next ›</button>
+    <button (click)="goToLastPage()" [disabled]="currentPage >= totalPages">Last »</button>
+  </div>
+
+</div>

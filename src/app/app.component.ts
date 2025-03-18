@@ -1,12 +1,13 @@
 import { Component } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { RouterModule } from '@angular/router';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
-  templateUrl: './app.component.html',
-  styleUrl: './app.component.scss'
+  standalone: true,
+  imports: [RouterModule], // Import RouterModule
+  templateUrl: './app.component.html'
 })
+
 export class AppComponent {
-  title = 'gung-product-list';
+  title = 'Gung Product List';
 }
