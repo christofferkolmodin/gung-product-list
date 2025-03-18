@@ -65,12 +65,12 @@ export class ProductListComponent implements OnInit, OnDestroy {
     if (typeof Worker !== 'undefined') {
       this.worker = new Worker(new URL('./product.worker', import.meta.url), { type: 'module' });
   
-      // Wrap worker messages in an Observable
+      // Wraps worker messages in an Observable
       fromEvent<MessageEvent>(this.worker, 'message')
         .pipe(takeUntil(this.destroy$))
         .subscribe(({ data }) => {
           this.filteredProducts = data.filteredProducts;
-          this.filteredCount$.next(data.filteredCount); // ← Update the count reactively
+          this.filteredCount$.next(data.filteredCount);
           this.totalPages = Math.max(1, Math.ceil(this.filteredProducts.length / this.pageSize));
           this.currentPage$.next(Math.min(this.currentPage$.value, this.totalPages));
           this.cdr.detectChanges();
@@ -310,7 +310,7 @@ export class ProductListComponent implements OnInit, OnDestroy {
   }
 
   trackByCategory(index: number, category: any): string {
-    return category.name; // Use category name as a unique identifier
+    return category.id;
   }
 
   inStockCount(): number {
