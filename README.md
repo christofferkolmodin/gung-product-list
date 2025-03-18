@@ -82,6 +82,7 @@ src/
 - RxJS
 - Bootstrap 5
 - Angular Web Workers
+- Angular Routing
 
 ---
 
@@ -91,6 +92,7 @@ You can easily extend the application by:
 - Adding more filtering criteria.
 - Enhancing UI/UX design.
 - Extending sorting capabilities.
+- Adding more navigation components/tabs.
 
 ---
 

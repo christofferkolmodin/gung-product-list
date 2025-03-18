@@ -45,7 +45,7 @@ export class ProductListComponent implements OnInit, OnDestroy {
   priceMin = new FormControl('');
   priceMax = new FormControl('');
   stockFilter = new FormControl(false); // The stock filter which is currently being displayed
-  tempStockFilter = new FormControl(false); // Changes in real-time depending on other filter options
+  tempStockFilter = new FormControl(false); // Changes in real-time depending on if checkbox is checked
   volumeFrom = new FormControl('');
   volumeTo = new FormControl('');
 
@@ -213,7 +213,7 @@ export class ProductListComponent implements OnInit, OnDestroy {
     this.volumeFrom.setValue(this.volumeFrom.value || '');
     this.volumeTo.setValue(this.volumeTo.value || '');
 
-    this.filterProducts(); // Apply filtering only when "Apply" is clicked
+    this.filterProducts(); // Apply filtering only when "Apply Filter" is clicked
   }
 
   clearFilters() {
@@ -275,7 +275,7 @@ export class ProductListComponent implements OnInit, OnDestroy {
       this.sortDirection = this.sortDirection === SortDirection.ASC ? SortDirection.DESC : SortDirection.ASC;
     } else {
       this.sortColumn = column;
-      this.sortDirection = column === 'extra.LGA' ? SortDirection.DESC : SortDirection.ASC; // Default DESC for stock
+      this.sortDirection = column === 'extra.LGA' ? SortDirection.DESC : SortDirection.ASC; // Default DESC for stock status
     }
   
     this.sortProducts();
