@@ -4,10 +4,10 @@ Angular web application that allows users to browse, filter, and sort products.
 
 According to assignment specifications:
 
-getCategories() is called from line 80, in the method ngOnInit(), if wanting to change to getAlotOfCategories() instead
+   getCategories() is called from line 80, in the method ngOnInit(), if wanting to change to getAlotOfCategories() instead
 
-getProduct(id) is called from line 125, in the method extractProducts(category),
-   if wanting to change to getRandomProduct(id) together with getCategories()
+   getProduct(id) is called from line 125, in the method extractProducts(category),
+      if wanting to change to use getRandomProduct(id) together with getCategories()
 
 ---
 

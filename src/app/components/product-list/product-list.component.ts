@@ -7,7 +7,7 @@ import { ChangeDetectionStrategy } from '@angular/core';
 import { ScrollingModule } from '@angular/cdk/scrolling';
 import { ChangeDetectorRef } from '@angular/core';
 import { applyFilters } from '../../utils/filter-utils';
-import { Subject, switchMap, tap, firstValueFrom, fromEvent, BehaviorSubject, ReplaySubject, takeUntil } from 'rxjs';
+import { Subject, switchMap, tap, firstValueFrom, fromEvent, BehaviorSubject, takeUntil } from 'rxjs';
 
 enum SortDirection {
   ASC = 'asc',
@@ -27,7 +27,7 @@ export class ProductListComponent implements OnInit, OnDestroy {
 
   private destroy$ = new Subject<void>();
   public currentPage$ = new BehaviorSubject<number>(1);
-  private productIndex$ = new ReplaySubject<Map<string, any[]>>(1);
+  private productIndex$ = new BehaviorSubject<Map<string, any[]>>(new Map());
   filteredCount$ = new BehaviorSubject<number>(0);
 
   totalPages: number = 0;
@@ -77,7 +77,7 @@ export class ProductListComponent implements OnInit, OnDestroy {
         });
   
       // Fetch categories and process products
-      this.categoryService.getAlotOfCategories()
+      this.categoryService.getCategories()
         .pipe(
           switchMap(categoryTree => this.extractProducts(categoryTree)),
           tap(products => {
